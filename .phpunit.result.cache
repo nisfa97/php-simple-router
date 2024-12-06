@@ -1,0 +1,1 @@
+{"version":1,"defects":{"TestRouteCollection::test_generate_uri_pattern":7,"TestRouteCollection::test_register_controller":7},"times":{"TestRouteCollection::test_generate_uri_pattern":0.004,"TestRouteCollection::test_it_throws_class_not_found_exception":0.004,"TestRouteCollection::test_register_controller":0.001}}
