@@ -8,6 +8,6 @@ class RouteCollectionException extends \Exception
 {
     public static function classNotFound(string $class): self
     {
-        return new self(sprintf("Class '%s' is not found.", $class));
+        return new self("The specified class '$class' could not be found. Please ensure that the class name is correct and properly autoloaded.");
     }
 }

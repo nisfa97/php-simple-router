@@ -30,4 +30,9 @@ class RouteMatcherException extends \Exception
     {
         return new self("No route matched the current request. Verify the requested URI and ensure corresponding routes are registered.");
     }
+
+    public static function objectNotImplementToStringMethod(object $class): self
+    {
+        return new self('Object of type ' . get_class($class) . 'does not implement __toString().');
+    }
 }

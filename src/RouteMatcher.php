@@ -50,6 +50,16 @@ class RouteMatcher
 
     private function ensureString($value): string
     {
+        foreach ($this->objectToIgnore as $object) {
+            if ($value instanceof $object) {
+               if (method_exists($value, '__toString')) {
+                return (string) $value;
+               }
+
+               throw RouteMatcherException::objectNotImplementToStringMethod($value);
+            }
+        }
+
         if (is_array($value) || is_object($value)) {
             $json = json_encode($value, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
             if (json_last_error() === JSON_ERROR_NONE) {

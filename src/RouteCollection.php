@@ -22,6 +22,10 @@ class RouteCollection
             throw RouteCollectionException::classNotFound($controller);
         }
 
+        if (in_array($controller, $this->routes)) {
+            return;
+        }
+
         $reflector = new ReflectionClass($controller);
 
         foreach ($reflector->getMethods() as $method) {
@@ -33,6 +37,13 @@ class RouteCollection
                     'callback'  => [$controller, $method->getName()]
                 ];
             }
+        }
+    }
+
+    public function registerGroup(array $controllers): void
+    {
+        foreach ($controllers as $controller) {
+            $this->registerController($controller);
         }
     }
 
