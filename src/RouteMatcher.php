@@ -12,11 +12,12 @@ class RouteMatcher
         private string  $method,
         private string  $uri,
         private array   $routeCollection,
+        private array   $objectToIgnore = []
     ){}
 
-    public function match()
+    public function match(): string
     {
-        if (! $this->method) {
+        if (! $this->routeCollection) {
             throw RouteMatcherException::routeCollectionEmpty();
         }
 
@@ -38,10 +39,32 @@ class RouteMatcher
                     throw RouteMatcherException::methodNotFound($class, $method);
                 }
 
-                return (new $class())->$method();
+                $res = (new $class())->$method();
+
+                return $this->ensureString($res);
             }
         }
 
         throw RouteMatcherException::routeNotFound();
+    }
+
+    private function ensureString($value): string
+    {
+        if (is_array($value) || is_object($value)) {
+            $json = json_encode($value, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $json;
+            }
+
+            ob_start();
+            print_r($value);
+            return ob_get_clean();
+        }
+
+        if (is_scalar($value) || is_null($value)) {
+            return (string) $value;
+        }
+
+        return '[Unsupported Type: ' . gettype($value) . ']';
     }
 }
