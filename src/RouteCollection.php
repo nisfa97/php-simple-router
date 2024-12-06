@@ -35,8 +35,9 @@ class RouteCollection
                     $routeInstance = $attribute->newInstance();
 
                     $this->routes[strtoupper($routeInstance->method)][] = [
-                        'uri'       => $this->generateUriPattern($routeInstance->uri),
-                        'callback'  => [$controller, $method->getName()]
+                        'uri'           => $this->generateUriPattern($routeInstance->uri),
+                        'callback'      => [$controller, $method->getName()],
+                        'middlewares'   => $$routeInstance->middlewares,
                     ];
                 }
             }

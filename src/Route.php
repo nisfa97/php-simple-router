@@ -10,7 +10,8 @@ use Attribute;
 class Route
 {
     public function __construct(
-        public readonly string $method,
-        public readonly string $uri,
+        public readonly string  $method,
+        public readonly string  $uri,
+        public readonly array   $middlewares = [],
     ) {}
 }
