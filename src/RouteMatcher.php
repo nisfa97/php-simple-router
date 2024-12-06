@@ -31,14 +31,6 @@ class RouteMatcher
 
                 [$class, $method] = $route['callback'];
 
-                if (! class_exists($class)) {
-                    throw RouteMatcherException::classNotFound($class);
-                }
-
-                if (! method_exists($class, $method)) {
-                    throw RouteMatcherException::methodNotFound($class, $method);
-                }
-
                 $res = (new $class())->$method();
 
                 return $this->ensureString($res);

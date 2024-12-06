@@ -10,6 +10,7 @@ use ReflectionClass;
 class RouteCollection
 {
     private array $routes = [];
+    private array $middlewares = [];
 
     public function getRoutes(): array
     {
@@ -45,6 +46,11 @@ class RouteCollection
         foreach ($controllers as $controller) {
             $this->registerController($controller);
         }
+    }
+
+    public function registerMiddlewares(array $middlewares): void
+    {
+        $this->middlewares = array_merge($this->middlewares, $middlewares);
     }
 
     private function generateUriPattern(string $uri): string
