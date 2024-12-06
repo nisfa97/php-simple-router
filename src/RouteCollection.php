@@ -31,12 +31,14 @@ class RouteCollection
 
         foreach ($reflector->getMethods() as $method) {
             foreach ($method->getAttributes() as $attribute) {
-                $routeInstance = $attribute->newInstance();
+                if ($attribute->getName() === 'Route') {
+                    $routeInstance = $attribute->newInstance();
 
-                $this->routes[strtoupper($routeInstance->method)][] = [
-                    'uri'       => $this->generateUriPattern($routeInstance->uri),
-                    'callback'  => [$controller, $method->getName()]
-                ];
+                    $this->routes[strtoupper($routeInstance->method)][] = [
+                        'uri'       => $this->generateUriPattern($routeInstance->uri),
+                        'callback'  => [$controller, $method->getName()]
+                    ];
+                }
             }
         }
     }
