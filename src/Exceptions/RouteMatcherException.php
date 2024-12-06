@@ -33,6 +33,6 @@ class RouteMatcherException extends \Exception
 
     public static function objectNotImplementToStringMethod(object $class): self
     {
-        return new self('Object of type ' . get_class($class) . 'does not implement __toString().');
+        return new self("Object of type '" . get_class($class) . "'does not implement __toString().");
     }
 }

@@ -6,14 +6,14 @@ namespace Nisfa97\PhpSimpleRouter;
 
 use Nisfa97\PhpSimpleRouter\Exceptions\RouteMatcherException;
 
-class RouteMatcher 
+class RouteMatcher
 {
     public function __construct(
         private string  $method,
         private string  $uri,
         private array   $routeCollection,
         private array   $objectToIgnore = []
-    ){}
+    ) {}
 
     public function match(): string
     {
@@ -42,22 +42,23 @@ class RouteMatcher
 
     private function ensureString($value): string
     {
-        foreach ($this->objectToIgnore as $object) {
-            if ($value instanceof $object) {
-               if (method_exists($value, '__toString')) {
-                return (string) $value;
-               }
+        if ($this->objectToIgnore) {
+            foreach ($this->objectToIgnore as $object) {
+                if ($value instanceof $object) {
+                    if (method_exists($value, '__toString')) {
+                        return (string) $value;
+                    }
 
-               throw RouteMatcherException::objectNotImplementToStringMethod($value);
+                    throw RouteMatcherException::objectNotImplementToStringMethod($value);
+                }
             }
         }
 
-        if (is_array($value) || is_object($value)) {
-            $json = json_encode($value, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return $json;
-            }
+        if (is_array($value)) {
+            return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }
 
+        if (is_object($value)) {
             ob_start();
             print_r($value);
             return ob_get_clean();
