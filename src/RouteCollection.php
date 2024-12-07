@@ -10,8 +10,16 @@ use ReflectionClass;
 class RouteCollection
 {
     private array $routes = [];
-    private array $middlewares = [];
 
+    public function __construct(
+        private ?Middleware $middleware = null,
+    ) {
+        if ($middleware === null) {
+            $this->middleware = new Middleware();
+        }
+    }
+
+    // Routes
     public function registerController(string $controller): void
     {
         if (! class_exists($controller)) {
@@ -29,8 +37,6 @@ class RouteCollection
                 if ($attribute->getName() === 'Nisfa97\PhpSimpleRouter\Route') {
                     $routeInstance = $attribute->newInstance();
 
-                    print_r($routeInstance->middlewares) . PHP_EOL;
-
                     $this->routes[strtoupper($routeInstance->method)][] = [
                         'uri'           => $this->generateUriPattern($routeInstance->uri),
                         'callback'      => [$controller, $method->getName()],
@@ -47,16 +53,18 @@ class RouteCollection
         }
     }
 
-    public function registerMiddlewares(array $middlewares): void
-    {
-        $this->middlewares = array_merge($this->middlewares, $middlewares);
-    }
-
     private function generateUriPattern(string $uri): string
     {
         return '#^' . preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $uri) . '$#';
     }
 
+    // Middlewares
+    public function registerMiddlewares(array $middlewares): void
+    {
+        $this->middleware->addMiddlewares($middlewares);
+    }
+
+    // Get private properties
     public function getRoutes(): array
     {
         return $this->routes;
@@ -64,14 +72,14 @@ class RouteCollection
 
     public function getMiddlewares(): array
     {
-        return $this->middlewares;
+        return $this->middleware->getMiddlewares();
     }
 
     public function getAll(): array
     {
         return [
             'routes'        => $this->routes,
-            'middlewares'   => $this->middlewares
+            'middlewares'   => $this->middleware->getMiddlewares()
         ];
     }
 }
