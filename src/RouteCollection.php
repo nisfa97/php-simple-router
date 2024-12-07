@@ -12,11 +12,6 @@ class RouteCollection
     private array $routes = [];
     private array $middlewares = [];
 
-    public function getRoutes(): array
-    {
-        return $this->routes;
-    }
-
     public function registerController(string $controller): void
     {
         if (! class_exists($controller)) {
@@ -31,13 +26,14 @@ class RouteCollection
 
         foreach ($reflector->getMethods() as $method) {
             foreach ($method->getAttributes() as $attribute) {
-                if ($attribute->getName() === 'Route') {
+                if ($attribute->getName() === 'Nisfa97\PhpSimpleRouter\Route') {
                     $routeInstance = $attribute->newInstance();
+
+                    print_r($routeInstance->middlewares) . PHP_EOL;
 
                     $this->routes[strtoupper($routeInstance->method)][] = [
                         'uri'           => $this->generateUriPattern($routeInstance->uri),
                         'callback'      => [$controller, $method->getName()],
-                        'middlewares'   => $$routeInstance->middlewares,
                     ];
                 }
             }
@@ -59,5 +55,23 @@ class RouteCollection
     private function generateUriPattern(string $uri): string
     {
         return '#^' . preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $uri) . '$#';
+    }
+
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
+    public function getMiddlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function getAll(): array
+    {
+        return [
+            'routes'        => $this->routes,
+            'middlewares'   => $this->middlewares
+        ];
     }
 }
