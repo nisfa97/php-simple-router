@@ -9,27 +9,30 @@ use Nisfa97\PhpSimpleRouter\Exceptions\RouteMatcherException;
 class RouteMatcher
 {
     public function __construct(
-        private string  $method,
-        private string  $uri,
-        private array   $routeCollection,
-        private array   $objectToIgnore = []
+        private string              $method,
+        private string              $uri,
+        private ?RouteCollection    $routeCollection,
+        private array               $objectToIgnore = []
     ) {}
 
     public function match(): string
     {
-        if (! $this->routeCollection) {
-            throw RouteMatcherException::routeCollectionEmpty();
-        }
+        $routes         = $this->routeCollection->getRoutes();
+        $middlewares    = $this->routeCollection->getMiddlewares();
 
-        if (! array_key_exists($this->method, $this->routeCollection)) {
+        if (! array_key_exists($this->method, $routes)) {
             throw RouteMatcherException::requestMethodNotRegistered($this->method);
         }
 
-        foreach ($this->routeCollection[$this->method] as $route) {
+        foreach ($routes[$this->method] as $route) {
             if (preg_match($route['uri'], $this->uri, $matches)) {
                 $routeParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
                 [$class, $method] = $route['callback'];
+
+                // check for global middlewares
+
+                // check if route has middlewares
 
                 $res = (new $class())->$method();
 

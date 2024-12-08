@@ -8,32 +8,46 @@ class Middleware
 {
     private array $middlewares = ['*' => []];
 
-    public function addMiddlewares(array $middlewares): void
+    public function registerMiddlewares(string|array $middlewares): void
     {
-        foreach ($middlewares as $middlewareKey => $middleware) {
-            $key = $this->checkIsKeyGlobal($middlewareKey);
+        if (is_string($middlewares)) {
+            $this->addMiddleware('*', $middlewares);
+            return;
+        }
 
-            if (is_string($middleware)) {
-                if (!isset($this->middlewares[$key][$middleware])) {
-                    $this->middlewares[$key][] = $middleware;
-                }
-            } else {
-                foreach ($middleware as $middlewareArrayValue) {
-                    if (!isset($this->middlewares[$key][$middlewareArrayValue])) {
-                        $this->middlewares[$key][] = $middlewareArrayValue;
-                    }
-                }
+
+        foreach ($middlewares as $middlewareKey => $middlewareClasses) {
+            $key = $this->normalizeKey($middlewareKey);
+
+            if (is_string($middlewareClasses)) {
+                $this->addMiddleware($key, $middlewareClasses);
+                continue;
+            }
+
+            foreach ($middlewareClasses as $middlewareClass) {
+                $this->addMiddleware($key, $middlewareClass);
             }
         }
     }
 
-    private function checkIsKeyGlobal(string|int $key): string
+    private function addMiddleware(string $key, string $middleware): void
     {
-        if ($key === '*' || is_int($key)) {
-            return '*';
+        if (! isset($this->middlewares[$key])) {
+            $this->middlewares[$key] = [];
         }
 
-        return $key;
+        if (! in_array($middleware, $this->middlewares[$key], true)) {
+            $this->middlewares[$key][] = $middleware;
+        }
+
+        // if (! array_key_exists($middleware, array_flip($this->middlewares[$key]))) {
+        //     $this->middlewares[$key][] = $middleware;
+        // }
+    }
+
+    private function normalizeKey(string|int $key): string
+    {
+        return ($key === '*' || is_int($key)) ? '*' : $key;
     }
 
     public function getMiddlewares(): array

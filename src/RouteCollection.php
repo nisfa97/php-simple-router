@@ -20,7 +20,19 @@ class RouteCollection
     }
 
     // Routes
-    public function registerController(string $controller): void
+    public function setController(string|array $controllers): void
+    {
+        if (is_string($controllers)) {
+            $this->addController($controllers);
+            return;
+        }
+
+        foreach ($controllers as $controller) {
+            $this->addController($controller);
+        }
+    }
+
+    private function addController(string $controller): void
     {
         if (! class_exists($controller)) {
             throw RouteCollectionException::classNotFound($controller);
@@ -46,22 +58,15 @@ class RouteCollection
         }
     }
 
-    public function registerGroup(array $controllers): void
-    {
-        foreach ($controllers as $controller) {
-            $this->registerController($controller);
-        }
-    }
-
     private function generateUriPattern(string $uri): string
     {
         return '#^' . preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $uri) . '$#';
     }
 
     // Middlewares
-    public function registerMiddlewares(array $middlewares): void
+    public function setMiddlewares(string|array $middlewares): void
     {
-        $this->middleware->addMiddlewares($middlewares);
+        $this->middleware->registerMiddlewares($middlewares);
     }
 
     // Get private properties
