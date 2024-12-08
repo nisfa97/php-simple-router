@@ -15,7 +15,6 @@ class Middleware
             return;
         }
 
-
         foreach ($middlewares as $middlewareKey => $middlewareClasses) {
             $key = $this->normalizeKey($middlewareKey);
 
@@ -47,7 +46,7 @@ class Middleware
 
     private function normalizeKey(string|int $key): string
     {
-        return ($key === '*' || is_int($key)) ? '*' : $key;
+        return (is_int($key)) ? '*' : $key;
     }
 
     public function getMiddlewares(): array
