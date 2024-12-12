@@ -4,53 +4,62 @@ declare(strict_types=1);
 
 namespace Nisfa97\PhpSimpleRouter;
 
+use Closure;
+
 class Middleware
 {
     private array $middlewares = ['*' => []];
 
-    public function registerMiddlewares(string|array $middlewares): void
+    public function setMiddlewares(string|array $controllers): void
     {
-        if (is_string($middlewares)) {
-            $this->addMiddleware('*', $middlewares);
+        if (is_string($controllers)) {
+            $this->addMiddleware('*', $controllers);
             return;
         }
 
-        foreach ($middlewares as $middlewareKey => $middlewareClasses) {
-            $key = $this->normalizeKey($middlewareKey);
+        foreach ($controllers as $key => $controller) {
+            $key = $this->normalizeMiddlewareKey($key);
 
-            if (is_string($middlewareClasses)) {
-                $this->addMiddleware($key, $middlewareClasses);
-                continue;
+            if (is_string($controller)) {
+                $this->addMiddleware($key, $controller);
+            } else {
+                foreach ($controller as $c) {
+                    $this->addMiddleware($key, $c);
+                }
             }
-
-            foreach ($middlewareClasses as $middlewareClass) {
-                $this->addMiddleware($key, $middlewareClass);
-            }
         }
-    }
-
-    private function addMiddleware(string $key, string $middleware): void
-    {
-        if (! isset($this->middlewares[$key])) {
-            $this->middlewares[$key] = [];
-        }
-
-        if (! in_array($middleware, $this->middlewares[$key], true)) {
-            $this->middlewares[$key][] = $middleware;
-        }
-
-        // if (! array_key_exists($middleware, array_flip($this->middlewares[$key]))) {
-        //     $this->middlewares[$key][] = $middleware;
-        // }
-    }
-
-    private function normalizeKey(string|int $key): string
-    {
-        return (is_int($key)) ? '*' : $key;
     }
 
     public function getMiddlewares(): array
     {
         return $this->middlewares;
+    }
+
+    private function addMiddleware(string $key, string $value): void
+    {
+        if (! isset($this->middlewares[$key])) {
+            $this->middlewares[$key] = [];
+        }
+
+        if (empty($this->middlewares[$key])) {
+            $this->middlewares[$key][] = $value;
+            return;
+        }
+
+        foreach ($this->middlewares[$key] as $middleware) {
+            if ($middleware !== $value) {
+                $this->middlewares[$key][] = $value;
+            }
+        }
+    }
+
+    private function normalizeMiddlewareKey(string|int $name): string
+    {
+        return is_int($name) ? '*' : $name;
+    }
+
+    public function resolve(array $key, Closure $next): void
+    {
+        
     }
 }

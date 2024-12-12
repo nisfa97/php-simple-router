@@ -12,13 +12,13 @@ class RouteMatcher
         private string              $method,
         private string              $uri,
         private ?RouteCollection    $routeCollection,
+        private ?Middleware         $middleware,
         private array               $objectToIgnore = []
     ) {}
 
     public function match(): string
     {
-        $routes         = $this->routeCollection->getRoutes();
-        $middlewares    = $this->routeCollection->getMiddlewares();
+        $routes = $this->routeCollection->getRoutes();
 
         if (! array_key_exists($this->method, $routes)) {
             throw RouteMatcherException::requestMethodNotRegistered($this->method);
@@ -28,15 +28,11 @@ class RouteMatcher
             if (preg_match($route['uri'], $this->uri, $matches)) {
                 $routeParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
+                $routeMiddlewares = $route['middlewares'] ?? [];
+                
                 [$class, $method] = $route['callback'];
 
-                // check for global middlewares
-
-                // check if route has middlewares
-
-                $res = (new $class())->$method();
-
-                return $this->ensureString($res);
+                return $this->ensureString((new $class())->$method());
             }
         }
 

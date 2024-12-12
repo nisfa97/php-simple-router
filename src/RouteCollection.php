@@ -11,16 +11,7 @@ class RouteCollection
 {
     private array $routes = [];
 
-    public function __construct(
-        private ?Middleware $middleware = null,
-    ) {
-        if ($middleware === null) {
-            $this->middleware = new Middleware();
-        }
-    }
-
-    // Routes
-    public function setController(string|array $controllers): void
+    public function setControllers(string|array $controllers): void
     {
         if (is_string($controllers)) {
             $this->addController($controllers);
@@ -30,6 +21,11 @@ class RouteCollection
         foreach ($controllers as $controller) {
             $this->addController($controller);
         }
+    }
+
+    public function getRoutes(): array
+    {
+        return $this->routes;
     }
 
     private function addController(string $controller): void
@@ -52,6 +48,7 @@ class RouteCollection
                     $this->routes[strtoupper($routeInstance->method)][] = [
                         'uri'           => $this->generateUriPattern($routeInstance->uri),
                         'callback'      => [$controller, $method->getName()],
+                        'middlewares'   => $routeInstance->middlewares,
                     ];
                 }
             }
@@ -61,30 +58,5 @@ class RouteCollection
     private function generateUriPattern(string $uri): string
     {
         return '#^' . preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $uri) . '$#';
-    }
-
-    // Middlewares
-    public function setMiddlewares(string|array $middlewares): void
-    {
-        $this->middleware->registerMiddlewares($middlewares);
-    }
-
-    // Get private properties
-    public function getRoutes(): array
-    {
-        return $this->routes;
-    }
-
-    public function getMiddlewares(): array
-    {
-        return $this->middleware->getMiddlewares();
-    }
-
-    public function getAll(): array
-    {
-        return [
-            'routes'        => $this->routes,
-            'middlewares'   => $this->middleware->getMiddlewares()
-        ];
     }
 }
