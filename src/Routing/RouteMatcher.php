@@ -18,7 +18,6 @@ class RouteMatcher
         private ?RouteCollection    $routeCollection,
         private ?RouteMiddleware    $middleware,
         private ?Container          $container,
-        private array               $objectToIgnore = []
     ) {}
 
     public function match(): string
@@ -81,23 +80,16 @@ class RouteMatcher
 
     private function ensureString($value): string
     {
-        if ($this->objectToIgnore) {
-            foreach ($this->objectToIgnore as $object) {
-                if ($value instanceof $object) {
-                    if (method_exists($value, '__toString')) {
-                        return (string) $value;
-                    }
-
-                    throw RouteMatcherException::objectNotImplementToStringMethod($value);
-                }
-            }
-        }
-
         if (is_array($value)) {
             return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         }
 
         if (is_object($value)) {
+            if (method_exists($value, '__toString'))
+            {
+                return (string) $value;
+            }
+
             ob_start();
             print_r($value);
             return ob_get_clean();
