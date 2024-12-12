@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nisfa97\PhpSimpleRouter\Routing;
+namespace Nisfa97\PhpSimpleRouter;
 
 use Nisfa97\PhpSimpleRouter\Exceptions\ContainerException;
 use ReflectionClass;
@@ -21,7 +21,13 @@ class Container
 
     public function singleton(string $id, callable $callback): void
     {
-        $this->instances[$id] = $callback();
+        $this->instances[$id] = function () use ($id, $callback) {
+            if (!isset($this->instances[$id])) {
+                $this->instances[$id] = $callback();
+            }
+
+            return $this->instances[$id];
+        };
     }
 
     public function has(string $id): bool
@@ -50,18 +56,20 @@ class Container
     {
         $classReflector = new ReflectionClass($id);
 
-        $constructor            = $classReflector->getConstructor();
-        $constructorParameters  = $constructor->getParameters();
-
-        if ($constructor === null || $constructorParameters === []) {
-            $this->bindings[$id] = fn(): object => $classReflector->newInstance();
-            return $this->bindings[$id]();
+        $constructor = $classReflector->getConstructor();
+        if (!$constructor) {
+            return  $classReflector->newInstance();
         }
+
+        $constructorParameters  = $constructor->getParameters();
+        if (!$constructorParameters) {
+            return  $classReflector->newInstance();
+        }
+
 
         $dependencies = array_map(fn(ReflectionParameter $param) => $this->resolveParameter($param), $constructorParameters);
 
-        $this->bindings[$id] = fn(): object => $classReflector->newInstanceArgs($dependencies);
-        return $this->bindings[$id]();
+        return $classReflector->newInstanceArgs($dependencies);
     }
 
     public function resolveParameter(ReflectionParameter $param)
@@ -76,15 +84,11 @@ class Container
             throw ContainerException::parameterHasUnionType($param->getName());
         }
 
-        if ($type && $type->allowsNull() && !$param->isDefaultValueAvailable()) {
-            return null;
-        }
-
         if ($param->isDefaultValueAvailable()) {
             return $param->getDefaultValue();
         }
 
-        if ($type && !$type->isBuiltin()) {
+        if (!$type->isBuiltin()) {
             return $this->get($type->getName());
         }
 

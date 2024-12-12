@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nisfa97\PhpSimpleRouter;
 
-use Nisfa97\PhpSimpleRouter\Routing\Container;
+use Nisfa97\PhpSimpleRouter\Container;
 use Nisfa97\PhpSimpleRouter\Routing\RouteCollection;
 use Nisfa97\PhpSimpleRouter\Routing\RouteMatcher;
 use Nisfa97\PhpSimpleRouter\Routing\RouteMiddleware;
@@ -30,17 +30,18 @@ class Router
             $this->middleware = new RouteMiddleware();
         }
 
+        if (! $container) {
+            $this->container = new Container();
+        }
+
         if (! $routeMatcher) {
             $this->routeMatcher = new RouteMatcher(
                 $this->requestMethod,
                 $this->requestUri,
                 $this->collection,
                 $this->middleware,
+                $this->container,
             );
-        }
-
-        if (! $container) {
-            $this->container = new Container();
         }
     }
 
@@ -53,6 +54,12 @@ class Router
     public function registerMiddlewares(string|array $middlewares): Router
     {
         $this->middleware->setMiddlewares($middlewares);
+        return $this;
+    }
+
+    public function registerContainer(callable $callback)
+    {
+        $callback($this->container);
         return $this;
     }
 

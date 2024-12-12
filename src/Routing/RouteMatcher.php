@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Nisfa97\PhpSimpleRouter\Routing;
 
+use Nisfa97\PhpSimpleRouter\Container;
 use Nisfa97\PhpSimpleRouter\Exceptions\RouteMatcherException;
+use ReflectionMethod;
+use ReflectionParameter;
+use ReflectionUnionType;
 
 class RouteMatcher
 {
@@ -13,6 +17,7 @@ class RouteMatcher
         private string              $uri,
         private ?RouteCollection    $routeCollection,
         private ?RouteMiddleware    $middleware,
+        private ?Container          $container,
         private array               $objectToIgnore = []
     ) {}
 
@@ -32,15 +37,46 @@ class RouteMatcher
 
                 [$class, $method] = $route['callback'];
 
-                $methodReflector = new \ReflectionMethod($class, $method);
+                $instance = $this->container->get($class);
 
-                $params = $methodReflector->getParameters();
+                $methodReflector = new ReflectionMethod($instance, $method);
 
-                return $this->ensureString((new $class())->$method());
+                $methodParameters = $methodReflector->getParameters();
+
+                if (!$methodParameters) {
+                    return $this->ensureString($instance->$method());
+                }
+
+                $dependencies = array_map(fn(ReflectionParameter $param) => $this->resolveMethodParameter($param), $methodParameters);
+
+                return $this->ensureString($methodReflector->invokeArgs($instance, $dependencies));
             }
         }
 
         throw RouteMatcherException::routeNotFound();
+    }
+
+    private function resolveMethodParameter(ReflectionParameter $param)
+    {
+        $type = $param->getType();
+
+        if (!$type) {
+            throw RouteMatcherException::parameterHasNoTypeHint($param->getName());
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            throw RouteMatcherException::parameterHasUnionType($param->getName());
+        }
+
+        if ($param->isDefaultValueAvailable()) {
+            return $param->getDefaultValue();
+        }
+
+        if (!$type->isBuiltin()) {
+            return $this->container->get($type->getName());
+        }
+
+        throw RouteMatcherException::failedToResolveDependency($type, $param->getName());
     }
 
     private function ensureString($value): string
