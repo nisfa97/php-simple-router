@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nisfa97\PhpSimpleRouter;
+namespace Nisfa97\PhpSimpleRouter\Routing;
 
 use Nisfa97\PhpSimpleRouter\Exceptions\RouteMatcherException;
 
@@ -12,7 +12,7 @@ class RouteMatcher
         private string              $method,
         private string              $uri,
         private ?RouteCollection    $routeCollection,
-        private ?Middleware         $middleware,
+        private ?RouteMiddleware    $middleware,
         private array               $objectToIgnore = []
     ) {}
 
@@ -29,8 +29,12 @@ class RouteMatcher
                 $routeParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
                 $routeMiddlewares = $route['middlewares'] ?? [];
-                
+
                 [$class, $method] = $route['callback'];
+
+                $methodReflector = new \ReflectionMethod($class, $method);
+
+                $params = $methodReflector->getParameters();
 
                 return $this->ensureString((new $class())->$method());
             }

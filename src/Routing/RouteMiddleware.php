@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Nisfa97\PhpSimpleRouter;
+namespace Nisfa97\PhpSimpleRouter\Routing;
 
 use Closure;
 
-class Middleware
+class RouteMiddleware
 {
     private array $middlewares = ['*' => []];
 

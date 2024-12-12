@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nisfa97\PhpSimpleRouter;
+namespace Nisfa97\PhpSimpleRouter\Routing;
 
 use Nisfa97\PhpSimpleRouter\Exceptions\RouteCollectionException;
 use ReflectionClass;
@@ -42,7 +42,7 @@ class RouteCollection
 
         foreach ($reflector->getMethods() as $method) {
             foreach ($method->getAttributes() as $attribute) {
-                if ($attribute->getName() === 'Nisfa97\PhpSimpleRouter\Route') {
+                if ($attribute->getName() === 'Nisfa97\PhpSimpleRouter\Attributes\Route') {
                     $routeInstance = $attribute->newInstance();
 
                     $this->routes[strtoupper($routeInstance->method)][] = [

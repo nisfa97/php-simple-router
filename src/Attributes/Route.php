@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nisfa97\PhpSimpleRouter;
+namespace Nisfa97\PhpSimpleRouter\Attributes;
 
 use Attribute;
 
