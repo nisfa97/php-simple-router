@@ -19,7 +19,7 @@ class Container
         $this->bindings[$id] = $callback;
     }
 
-    public function singleton(string $id, callable $callback): void
+    public function singleton(string $id, callable|string $callback): void
     {
         $this->instances[$id] = function () use ($id, $callback) {
             if (!isset($this->instances[$id])) {
@@ -56,6 +56,10 @@ class Container
     {
         $classReflector = new ReflectionClass($id);
 
+        if (!$classReflector->isInstantiable()) {
+            throw new \Exception('Failed because class is not instantiable.');
+        }
+
         $constructor = $classReflector->getConstructor();
         if (!$constructor) {
             return  $classReflector->newInstance();
@@ -65,7 +69,6 @@ class Container
         if (!$constructorParameters) {
             return  $classReflector->newInstance();
         }
-
 
         $dependencies = array_map(fn(ReflectionParameter $param) => $this->resolveParameter($param), $constructorParameters);
 

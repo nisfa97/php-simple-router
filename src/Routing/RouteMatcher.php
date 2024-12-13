@@ -30,7 +30,7 @@ class RouteMatcher
 
         foreach ($routes[$this->method] as $route) {
             if (preg_match($route['uri'], $this->uri, $matches)) {
-                $routeParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+                $routeParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY) ?? [];
 
                 $routeMiddlewares = $route['middlewares'] ?? [];
 
@@ -38,55 +38,68 @@ class RouteMatcher
 
                 $instance = $this->container->get($class);
 
-                $methodReflector = new ReflectionMethod($instance, $method);
+                $dependencies = $this->getMethodDependencies($instance, $method, $routeParams);
 
-                $methodParameters = $methodReflector->getParameters();
-
-                if (!$methodParameters) {
-                    return $this->ensureString($instance->$method());
+                if ($dependencies) {
+                    $res = $this->middleware->resolve(fn() => $instance->$method(...$dependencies), $routeMiddlewares);
+                } else {
+                    $res = $this->middleware->resolve(fn() => $instance->$method(), $routeMiddlewares);
                 }
 
-                $dependencies = array_map(fn(ReflectionParameter $param) => $this->resolveMethodParameter($param), $methodParameters);
-
-                return $this->ensureString($methodReflector->invokeArgs($instance, $dependencies));
+                return $this->responseString($res());
             }
         }
 
         throw RouteMatcherException::routeNotFound();
     }
 
-    private function resolveMethodParameter(ReflectionParameter $param)
+    private function getMethodDependencies(object $instance, string $method, array $routeParams): array
     {
-        $type = $param->getType();
+        $methodReflector = new ReflectionMethod($instance, $method);
 
-        if (!$type) {
-            throw RouteMatcherException::parameterHasNoTypeHint($param->getName());
+        $methodParameters = $methodReflector->getParameters();
+
+        if (!$methodParameters) {
+            return [];
         }
 
-        if ($type instanceof ReflectionUnionType) {
-            throw RouteMatcherException::parameterHasUnionType($param->getName());
-        }
+        $dependencies = array_map(function (ReflectionParameter $param) use ($routeParams) {
+            $type = $param->getType();
 
-        if ($param->isDefaultValueAvailable()) {
-            return $param->getDefaultValue();
-        }
+            if (isset($routeParams[$param->getName()])) {
+                return $routeParams[$param->getName()];
+            }
 
-        if (!$type->isBuiltin()) {
-            return $this->container->get($type->getName());
-        }
+            if (!$type) {
+                throw RouteMatcherException::parameterHasNoTypeHint($param->getName());
+            }
 
-        throw RouteMatcherException::failedToResolveDependency($type, $param->getName());
+            if ($type instanceof ReflectionUnionType) {
+                throw RouteMatcherException::parameterHasUnionType($param->getName());
+            }
+
+            if ($param->isDefaultValueAvailable()) {
+                return $param->getDefaultValue();
+            }
+
+            if (!$type->isBuiltin()) {
+                return $this->container->get($type->getName());
+            }
+
+            throw RouteMatcherException::failedToResolveDependency($type, $param->getName());
+        }, $methodParameters);
+
+        return $dependencies;
     }
 
-    private function ensureString($value): string
+    private function responseString($value): string
     {
         if (is_array($value)) {
             return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         }
 
         if (is_object($value)) {
-            if (method_exists($value, '__toString'))
-            {
+            if (method_exists($value, '__toString')) {
                 return (string) $value;
             }
 
