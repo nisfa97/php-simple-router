@@ -30,11 +30,15 @@ class RouteCollection
 
     private function addController(string $controller): void
     {
+        if (empty($controller)) {
+            throw RouteCollectionException::emptyPassedArgument();
+        }
+
         if (! class_exists($controller)) {
             throw RouteCollectionException::classNotFound($controller);
         }
 
-        if (in_array($controller, $this->routes)) {
+        if (in_array($controller, $this->routes, true)) {
             return;
         }
 
@@ -42,7 +46,7 @@ class RouteCollection
 
         foreach ($reflector->getMethods() as $method) {
             foreach ($method->getAttributes() as $attribute) {
-                if ($attribute->getName() === 'Nisfa97\PhpSimpleRouter\Attributes\Route') {
+                if ($attribute->getName() === 'Nisfa97\PhpSimpleRouter\Attributes\Routing\Route') {
                     $routeInstance = $attribute->newInstance();
 
                     $this->routes[strtoupper($routeInstance->method)][] = [
