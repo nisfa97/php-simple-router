@@ -83,7 +83,7 @@ This router uses PHP's Attributes to define routes within your controllers.
 ```php
 use Nisfa97\PhpSimpleRouter\Attributes\Routing\Route;
 
-/** Http method also can be written with lowercases
+/** HTTP method can also be written in lowercase:
  * #[Route('get', '/dashboard')]
  */
 class DashboardController {
@@ -93,17 +93,17 @@ class DashboardController {
     }
 }
 
-// or 
+// Alternatively:
 class DashboardController {
     /**
-     * Route class support numbers of Http const method:
+     * Route class supports several HTTP constants:
      * Route::METHOD_GET
      * Route::METHOD_POST
      * Route::METHOD_PUT
      * Route::METHOD_PATCH
      * Route::METHOD_DELETE
      * Route::METHOD_OPTIONS
-    */
+     */
 
     #[Route(method:Route::METHOD_GET, uri:'/dashboard')]
     public function index(): string {
@@ -111,7 +111,7 @@ class DashboardController {
     }
 }
 
-// to attach middleware to particular controller
+// Attach middleware to a specific route:
 class DashboardController {
     #[Route(method:Route::METHOD_GET, uri:'/dashboard', middlewares:['auth'])]
     public function index(): string {
@@ -121,8 +121,7 @@ class DashboardController {
 ```
 
 ## Middlewares
-Middleware can be register by alias name. If no name is given, it will default to
-global middleware. Global middlewares will run every incoming request.
+Middleware can be registered globally or with aliases for specific routes.
 
 ### Example
 ```php
@@ -136,8 +135,8 @@ global middleware. Global middlewares will run every incoming request.
     EmailConfirmed::class,
 ]);
 
-// register middleware with alias name.
-// this middlewares only will run if particular controller have this middleware registered.
+// Register middleware with alias name.
+// These middlewares will only run if a controller has them registered.
 ->registerMiddlewares([
     'auth' => [
         Auth::class,
@@ -148,8 +147,8 @@ global middleware. Global middlewares will run every incoming request.
 
 ## Features in Progress
 - Route Prefixing: A feature to group and manage routes under common prefixes.
-- Route Caching.
-- Prepend and Append: Allows developer to append and prepend specify middlewares.
+- Route Caching: Cache routes for improved performance.
+- Prepend and Append Middleware: Add middleware at specific points in the request pipeline.
 - Additional enhancements for middleware and DI containers.
 
 ## Limitations
@@ -157,4 +156,6 @@ global middleware. Global middlewares will run every incoming request.
 - Limited feature set compared to larger frameworks like Laravel or Symfony.
 
 ## Contributions
-Contributions are welcome! Feel free to fork the repository and submit pull requests for enhancements or bug fixes. 🥰🥰
+Contributions are welcome! Feel free to fork the repository and submit pull requests for enhancements or bug fixes. 
+
+Made with ❤️ by Nisfa97
