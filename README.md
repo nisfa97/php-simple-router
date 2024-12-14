@@ -17,6 +17,7 @@ The match() method processes incoming requests and returns a response string.
 
 ```php
 use Nisfa97\PhpSimpleRouter\Router;
+use Nisfa97\PhpSimpleRouter\Container;
 
 require './vendor/autoload.php';
 
