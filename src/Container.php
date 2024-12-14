@@ -11,23 +11,18 @@ use ReflectionUnionType;
 
 class Container
 {
-    private array $instances    = [];
-    private array $bindings     = [];
+    private array $instances = [];
+    private array $bindings = [];
 
     public function bind(string $id, callable $callback): void
     {
         $this->bindings[$id] = $callback;
     }
 
-    public function singleton(string $id, callable|string $callback): void
+    public function singleton(string $id, callable $callback): void
     {
-        $this->instances[$id] = function () use ($id, $callback) {
-            if (!isset($this->instances[$id])) {
-                $this->instances[$id] = $callback();
-            }
-
-            return $this->instances[$id];
-        };
+        $this->instances[$id] = null;
+        $this->bindings[$id] = $callback;
     }
 
     public function has(string $id): bool
@@ -38,11 +33,15 @@ class Container
     public function get(string $id): object
     {
         if (isset($this->instances[$id])) {
+            if ($this->instances[$id] === null) {
+                $this->instances[$id] = $this->bindings[$id]($this);
+            }
+
             return $this->instances[$id];
         }
 
         if (isset($this->bindings[$id])) {
-            return $this->bindings[$id]();
+            return $this->bindings[$id]($this);
         }
 
         if (class_exists($id)) {
@@ -62,12 +61,12 @@ class Container
 
         $constructor = $classReflector->getConstructor();
         if (!$constructor) {
-            return  $classReflector->newInstance();
+            return $classReflector->newInstance();
         }
 
-        $constructorParameters  = $constructor->getParameters();
+        $constructorParameters = $constructor->getParameters();
         if (!$constructorParameters) {
-            return  $classReflector->newInstance();
+            return $classReflector->newInstance();
         }
 
         $dependencies = array_map(fn(ReflectionParameter $param) => $this->resolveParameter($param), $constructorParameters);
