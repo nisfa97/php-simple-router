@@ -17,6 +17,7 @@ The match() method processes incoming requests and returns a response string.
 
 ```php
 use Nisfa97\PhpSimpleRouter\Router;
+use Nisfa97\PhpSimpleRouter\Container;
 
 require './vendor/autoload.php';
 
@@ -32,10 +33,10 @@ $router->registerControllers([
 ]);
 
 // register dependencies here...
-$router->registerContainer([
-    Request::class,
-    Response::class,
-]);
+$router->registerContainer(function (Container $c) {
+    $c->bind(Request::class, fn () => new Request());
+    $c->bind(Response::class, fn () => new Response());
+});
 
 // register middlewares here...
 $router->registerMiddlewares([
