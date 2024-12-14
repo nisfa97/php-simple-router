@@ -10,8 +10,9 @@ use Attribute;
 class RoutePrefix
 {
     public function __construct(
-        public readonly string          $prefix,
-        public readonly array|string    $only       = '',
-        public readonly array|string    $except     = '',
-    ){}
+        public readonly string $prefix,
+        public readonly array $only = [],
+        public readonly array $except = [],
+    ) {
+    }
 }

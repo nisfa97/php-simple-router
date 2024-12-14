@@ -59,6 +59,10 @@ class RouteMiddleware
     public function resolve(callable $next, array $routeMiddlewares): callable
     {
         foreach (array_reverse($this->middlewares['*']) as $webMiddleware) {
+            if (! method_exists($webMiddleware, 'handle')) {
+                throw new \Exception("Middleware '$webMiddleware' does not have handle method.");
+            }
+
             $next = (new $webMiddleware())->handle($next);
         }
 

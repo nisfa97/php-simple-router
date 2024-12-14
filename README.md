@@ -1,44 +1,47 @@
 # PHP Simple Router
 A lightweight and developer-friendly router for PHP, utilizing PHP's Attribute feature. This router allows you to define routes directly within your controller files, eliminating the need for separate route files.
 
-Note: This router is designed for small or personal projects. It lacks advanced features required for large-scale or production-ready applications.
+**Note:** This router is designed for small or personal projects. It lacks advanced features required for large-scale or production-ready applications.
+
+---
 
 ## Features
-1. Supported HTTP Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-3. Route Prefixing (Coming Soon): A planned feature to group routes under a common prefix.
-4. Middleware Support: Add middleware for request handling.
-5. Built-in Dependency Injection (DI) Container: Simplifies dependency management.
-6. Route Caching (Coming Soon): Improve performance by caching routes.
+- **Supported HTTP Methods**: GET, POST, PUT, PATCH, DELETE, OPTIONS.
+- **Route Parameters**: Dynamically capture route segments.
+- **Route Prefixing**: Group routes under a common prefix.
+- **Middleware Support**: Add middleware for request handling.
+- **Built-in Dependency Injection (DI) Container**: Simplifies dependency management.
+- **Route Caching (Coming Soon)**: Improve performance by caching routes.
 
-## Usage
+---
+
+## Quick Start
 
 ### Basic Example
-The match() method processes incoming requests and returns a response string.
+The `match()` method processes incoming requests and returns a response string.
 
 ```php
 use Nisfa97\PhpSimpleRouter\Router;
 use Nisfa97\PhpSimpleRouter\Container;
 
-require './vendor/autoload.php';
-
 $router = new Router();
 
-// register single controller
+// Register a single controller
 $router->registerControllers(DashboardController::class);
 
-// register multiple controllers
+// Register multiple controllers
 $router->registerControllers([
     AuthController::class,
     DashboardController::class,
 ]);
 
-// register dependencies here...
+// Register dependencies
 $router->registerContainer(function (Container $c) {
     $c->bind(Request::class, fn () => new Request());
     $c->bind(Response::class, fn () => new Response());
 });
 
-// register middlewares here...
+// Register middlewares
 $router->registerMiddlewares([
     WithCsrf::class,
     Auth::class,
@@ -51,12 +54,10 @@ echo $response;
 ```
 
 ### Simplified Inline Example
-For more compact code, you can chain method calls:
+For more compact code:
 
 ```php
 use Nisfa97\PhpSimpleRouter\Router;
-
-require './vendor/autoload.php';
 
 $response = (new Router())
     ->registerControllers([
@@ -76,69 +77,146 @@ $response = (new Router())
 echo $response;
 ```
 
-## Attributes
-This router uses PHP's Attributes to define routes within your controllers.
+---
 
-### Example
+## Route Attributes
+
+### Basic Routing
+Define routes within your controllers using PHP Attributes:
 
 ```php
 use Nisfa97\PhpSimpleRouter\Attributes\Routing\Route;
 
-/** HTTP method can also be written in lowercase:
- * #[Route('get', '/dashboard')]
- */
-class DashboardController {
-    #[Route(method:'GET', uri:'/dashboard')]
+class BookController {
+    #[Route(method:'GET', uri:'/books')]
     public function index(): string {
-        return 'Welcome to the Dashboard!';
-    }
-}
-
-// Alternatively:
-class DashboardController {
-    /**
-     * Route class supports several HTTP constants:
-     * Route::METHOD_GET
-     * Route::METHOD_POST
-     * Route::METHOD_PUT
-     * Route::METHOD_PATCH
-     * Route::METHOD_DELETE
-     * Route::METHOD_OPTIONS
-     */
-
-    #[Route(method:Route::METHOD_GET, uri:'/dashboard')]
-    public function index(): string {
-        return 'Welcome to the Dashboard!';
-    }
-}
-
-// Attach middleware to a specific route:
-class DashboardController {
-    #[Route(method:Route::METHOD_GET, uri:'/dashboard', middlewares:['auth'])]
-    public function index(): string {
-        return 'Welcome to the Dashboard!';
+        return 'books.index';
     }
 }
 ```
 
-## Middlewares
-Middleware can be registered globally or with aliases for specific routes.
+**Alternate Syntax:**
 
-### Example
+- Use lowercase methods:
+  ```php
+  #[Route(method:'get', uri:'/books')]
+  public function index(): string {
+      return 'books.index';
+  }
+  ```
+
+- Use predefined constants:
+  ```php
+  #[Route(Route::METHOD_GET, '/books')]
+  public function index(): string {
+      return 'books.index';
+  }
+  ```
+
+### Supported HTTP Methods
+- `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`.
+
+Example:
 ```php
-// register single middleware globally
-->registerMiddlewares(ConfirmedEmail::class);
+#[Route(Route::METHOD_GET, '/uri')]
+#[Route(Route::METHOD_POST, '/uri')]
+#[Route(Route::METHOD_PUT, '/uri')]
+#[Route(Route::METHOD_PATCH, '/uri')]
+#[Route(Route::METHOD_DELETE, '/uri')]
+#[Route(Route::METHOD_OPTIONS, '/uri')]
+```
 
-// register group of middleware globally
-->registerMiddlewares([
+### Route Parameters
+Capture URI segments dynamically:
+
+```php
+#[Route(method:'GET', uri:'/books/{id}')]
+public function show($id): string {
+    return "Book: $id";
+}
+```
+Parameters in the URI (e.g., `{id}`) are automatically injected into the method.
+
+### Route Prefixes
+Group routes under a common prefix:
+
+```php
+use Nisfa97\PhpSimpleRouter\Attributes\Routing\RoutePrefix;
+
+#[RoutePrefix(prefix:'admin')]
+class BookController {
+    #[Route(method:'GET', uri:'/books')]
+    public function index() {}
+}
+```
+
+**Options:**
+
+- Specify methods to prefix:
+  ```php
+  #[RoutePrefix(prefix:'admin', only:['index', 'show'])]
+  class BookController {
+      #[Route(method:'GET', uri:'/books')]
+      public function index() {}
+
+      #[Route(method:'GET', uri:'/books/{id}')]
+      public function show($id) {}
+
+      #[Route(method:'POST', uri:'/books')]
+      public function store() {}
+  }
+  ```
+
+- Exclude methods from prefixing:
+  ```php
+  #[RoutePrefix(prefix:'admin', except:['store'])]
+  class BookController {
+      #[Route(method:'GET', uri:'/books')]
+      public function index() {}
+
+      #[Route(method:'POST', uri:'/books')]
+      public function store() {}
+  }
+  ```
+
+---
+
+## Middleware
+
+### Attaching Middleware to Routes
+Add middleware to specific routes:
+
+```php
+#[Route(method:'GET', uri:'/books', middlewares: ['auth'])]
+public function index() {}
+```
+
+### Define Middleware
+Middleware classes must have a `handle` method:
+
+```php
+class ConfirmedEmail {
+    public function handle(callable $next) {
+        return function () use ($next) {
+            // Logic here...
+
+            return $next();
+        };
+    }
+}
+```
+
+### Register Middleware
+
+```php
+// Register globally
+$router->registerMiddlewares([
     WithCsrf::class,
     Auth::class,
-    EmailConfirmed::class,
 ]);
 
-// Register middleware with alias name.
-// These middlewares will only run if a controller has them registered.
-->registerMiddlewares([
+// Register with alias
+$router->registerMiddlewares([
     'auth' => [
         Auth::class,
         IsAdmin::class
@@ -146,17 +224,23 @@ Middleware can be registered globally or with aliases for specific routes.
 ]);
 ```
 
-## Features in Progress
-- Route Prefixing: A feature to group and manage routes under common prefixes.
-- Route Caching: Cache routes for improved performance.
-- Prepend and Append Middleware: Add middleware at specific points in the request pipeline.
-- Additional enhancements for middleware and DI containers.
+---
+
+## Upcoming Features
+- **Route Caching**: Cache routes to enhance performance.
+- **Middleware Enhancements**: Prepend/append middleware and middleware grouping.
+- **DI Container Enhancements**: Additional features for dependency injection.
+
+---
 
 ## Limitations
-- Not suitable for production-grade projecst yet.
-- Limited feature set compared to larger frameworks like Laravel or Symfony.
+- Designed for small or personal projects.
+- Limited features compared to frameworks like Laravel or Symfony.
+
+---
 
 ## Contributions
-Contributions are welcome! Feel free to fork the repository and submit pull requests for enhancements or bug fixes. 
+Contributions are welcome! Fork the repository and submit pull requests for improvements or bug fixes.
 
-Made with ❤️ by Nisfa97
+**Made with ❤️ by Nisfa97**
+
