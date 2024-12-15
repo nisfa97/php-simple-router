@@ -29,13 +29,9 @@ class RouteCollection
 
     private function addController(string $controller): void
     {
-        if (empty($controller)) {
-            throw RouteCollectionException::emptyController();
-        }
+        if (empty($controller)) throw RouteCollectionException::emptyController();
 
-        if (!class_exists($controller)) {
-            throw RouteCollectionException::classNotFound($controller);
-        }
+        if (!class_exists($controller)) throw RouteCollectionException::classNotFound($controller);
 
         $classReflector = new ReflectionClass($controller);
 
