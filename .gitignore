@@ -1,6 +1,7 @@
 /vendor/
 /tests/
 
+BookController.php
 phpunit.xml
 index.php
 loggers.log

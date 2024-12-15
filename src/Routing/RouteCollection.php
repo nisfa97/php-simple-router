@@ -9,6 +9,7 @@ use Nisfa97\PhpSimpleRouter\Attributes\Routing\RoutePrefix;
 use Nisfa97\PhpSimpleRouter\Exceptions\RouteCollectionException;
 use ReflectionAttribute;
 use ReflectionClass;
+use ReflectionMethod;
 
 class RouteCollection
 {
@@ -21,12 +22,7 @@ class RouteCollection
 
     public function setControllers(string|array $controllers): void
     {
-        if (is_string($controllers)) {
-            $this->addController($controllers);
-            return;
-        }
-
-        foreach ($controllers as $controller) {
+        foreach ((array) $controllers as $controller) {
             $this->addController($controller);
         }
     }
@@ -34,7 +30,7 @@ class RouteCollection
     private function addController(string $controller): void
     {
         if (empty($controller)) {
-            throw RouteCollectionException::emptyPassedArgument();
+            throw RouteCollectionException::emptyController();
         }
 
         if (!class_exists($controller)) {
@@ -43,30 +39,14 @@ class RouteCollection
 
         $classReflector = new ReflectionClass($controller);
 
-        $classAttribute = $classReflector->getAttributes(RoutePrefix::class, ReflectionAttribute::IS_INSTANCEOF);
-
-        $routePrefix = $classAttribute ? $classAttribute[0]->newInstance() : null;
+        $routePrefix = $this->getAttributeInstance($classReflector, RoutePrefix::class);
 
         foreach ($classReflector->getMethods() as $method) {
-            $methodAttribute = $method->getAttributes(Route::class, ReflectionAttribute::IS_INSTANCEOF);
+            $route = $this->getAttributeInstance($method, Route::class);
 
-            $route = $methodAttribute[0]->newInstance();
+            if (!$route) continue;
 
-            $uri = $route->uri;
-
-            if ($routePrefix) {
-                if (empty($routePrefix->only) && empty($routePrefix->except)) {
-                    $uri = $this->generatePrefixUri($routePrefix->prefix, $uri);
-                }
-
-                if (!empty($routePrefix->only) && in_array($method->getName(), $routePrefix->only, true)) {
-                    $uri = $this->generatePrefixUri($routePrefix->prefix, $uri);
-                }
-
-                if (!empty($routePrefix->except) && !in_array($method->getName(), $routePrefix->except, true)) {
-                    $uri = $this->generatePrefixUri($routePrefix->prefix, $uri);
-                }
-            }
+            $uri = $this->generateUri($route, $routePrefix, $method->getName());
 
             $this->routes[strtoupper($route->method)][] = [
                 'uri' => $this->generateUriPattern($uri),
@@ -74,6 +54,31 @@ class RouteCollection
                 'middlewares' => $route->middlewares,
             ];
         }
+    }
+
+    private function getAttributeInstance(object $reflector, string $attributeClass): ?object
+    {
+        $attributes = $reflector->getAttributes($attributeClass, ReflectionAttribute::IS_INSTANCEOF);
+
+        return $attributes ? $attributes[0]->newInstance() : null;
+    }
+
+    private function generateUri(object $route, ?object $routePrefix, string $methodName): string
+    {
+        $uri = $route->uri;
+
+        if ($routePrefix && $this->shouldApplyPrefix($routePrefix, $methodName)) {
+            $uri = $this->generatePrefixUri($routePrefix->prefix, $uri);
+        }
+
+        return $uri;
+    }
+
+    private function shouldApplyPrefix(RoutePrefix $routePrefix, string $methodName): bool
+    {
+        return empty($routePrefix->only) && empty($routePrefix->except) ||
+            (!empty($routePrefix->only) && in_array($methodName, $routePrefix->only, true)) ||
+            (!empty($routePrefix->except) && !in_array($methodName, $routePrefix->except, true));
     }
 
     private function generatePrefixUri(string $prefix, string $uri): string

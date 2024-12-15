@@ -6,9 +6,9 @@ namespace Nisfa97\PhpSimpleRouter\Exceptions;
 
 class RouteCollectionException extends \Exception
 {
-    public static function emptyPassedArgument()
+    public static function emptyController()
     {
-        return new self("The provided argument is empty. Please ensure a valid value is passed.");
+        return new self("Controller name cannot be empty.");
     }
 
     public static function classNotFound(string $class): self
