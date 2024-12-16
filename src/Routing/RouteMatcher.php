@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare (strict_types = 1);
 
 namespace Nisfa97\PhpSimpleRouter\Routing;
 
@@ -13,44 +13,60 @@ use ReflectionUnionType;
 class RouteMatcher
 {
     public function __construct(
-        private string              $method,
-        private string              $uri,
-        private ?RouteCollection    $routeCollection,
-        private ?RouteMiddleware    $middleware,
-        private ?Container          $container,
+        private string $method,
+        private string $uri,
+        private ?RouteCollection $routeCollection,
+        private ?RouteMiddleware $middleware,
+        private ?Container $container,
     ) {}
 
     public function match(): string
     {
         $routes = $this->routeCollection->getRoutes();
 
-        if (! array_key_exists($this->method, $routes)) {
+        if (!array_key_exists($this->method, $routes)) {
             throw RouteMatcherException::requestMethodNotRegistered($this->method);
         }
 
         foreach ($routes[$this->method] as $route) {
-            if (preg_match($route['uri'], $this->uri, $matches)) {
-                $routeParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY) ?? [];
+            $routeParams = $this->isRouteMatched($route);
 
-                $routeMiddlewares = $route['middlewares'] ?? [];
-
-                [$class, $method] = $route['callback'];
-
-                $instance = $this->container->get($class);
-
-                $dependencies = $this->getMethodDependencies($instance, $method, $routeParams);
-
-                if ($dependencies) {
-                    $res = $this->middleware->resolve(fn() => $instance->$method(...$dependencies), $routeMiddlewares);
-                } else {
-                    $res = $this->middleware->resolve(fn() => $instance->$method(), $routeMiddlewares);
-                }
-
-                return $this->responseString($res());
+            if (is_array($routeParams)) {
+                return $this->resolveRoute($route, $routeParams);
             }
         }
 
         throw RouteMatcherException::routeNotFound();
+    }
+
+    private function isRouteMatched(array $route): array | false
+    {
+        $res = preg_match($route['uri'], $this->uri, $matches);
+
+        if ($res) {
+            return (!empty($matches))
+            ? array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY)
+            : [];
+        }
+
+        return false;
+    }
+
+    private function resolveRoute(array $route, array $routeParams): string
+    {
+        [$class, $method] = $route['callback'];
+
+        $instance = $this->container->get($class);
+
+        $dependencies = $this->getMethodDependencies($instance, $method, $routeParams);
+
+        $callback = ($dependencies)
+        ? fn() => $instance->$method(...$dependencies)
+        : fn() => $instance->$method();
+
+        $response = $this->middleware->resolve($callback, $route['middlewares']);
+
+        return $this->response($response);
     }
 
     private function getMethodDependencies(object $instance, string $method, array $routeParams): array
@@ -64,54 +80,58 @@ class RouteMatcher
         }
 
         $dependencies = array_map(function (ReflectionParameter $param) use ($routeParams) {
-            $type = $param->getType();
-
-            if (isset($routeParams[$param->getName()])) {
-                return $routeParams[$param->getName()];
-            }
-
-            if (!$type) {
-                throw RouteMatcherException::parameterHasNoTypeHint($param->getName());
-            }
-
-            if ($type instanceof ReflectionUnionType) {
-                throw RouteMatcherException::parameterHasUnionType($param->getName());
-            }
-
-            if ($param->isDefaultValueAvailable()) {
-                return $param->getDefaultValue();
-            }
-
-            if (!$type->isBuiltin()) {
-                return $this->container->get($type->getName());
-            }
-
-            throw RouteMatcherException::failedToResolveDependency($type, $param->getName());
+            return $this->resolveParameters($param, $routeParams);
         }, $methodParameters);
 
         return $dependencies;
     }
 
-    private function responseString($value): string
+    private function resolveParameters(ReflectionParameter $param, array $routeParams): mixed
     {
-        if (is_array($value)) {
-            return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $name = $param->getName();
+        $type = $param->getType();
+
+        if (isset($routeParams[$name])) {
+            return $routeParams[$name];
         }
 
-        if (is_object($value)) {
-            if (method_exists($value, '__toString')) {
-                return (string) $value;
-            }
-
-            ob_start();
-            print_r($value);
-            return ob_get_clean();
+        if (!$type) {
+            throw RouteMatcherException::parameterHasNoTypeHint($param->getName());
         }
 
-        if (is_scalar($value) || is_null($value)) {
-            return (string) $value;
+        if ($type instanceof ReflectionUnionType) {
+            throw RouteMatcherException::parameterHasUnionType($param->getName());
         }
 
-        return '[Unsupported Type: ' . gettype($value) . ']';
+        if ($param->isDefaultValueAvailable()) {
+            return $param->getDefaultValue();
+        }
+
+        if (!$type->isBuiltin()) {
+            return $this->container->get($type->getName());
+        }
+
+        throw RouteMatcherException::failedToResolveDependency($type, $param->getName());
+    }
+
+    private function response(callable $callback): string
+    {
+        ob_start();
+
+        $response = $callback();
+
+        echo $this->formatToString($response);
+
+        return ob_get_clean();
+    }
+
+    private function formatToString(mixed $response): string
+    {
+        return match (gettype($response)) {
+            'array' => json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'object' => method_exists($response, '__toString') ? (string) $response : print_r($response, true),
+            'int', 'float', 'string', 'bool' => (string) $response,
+            default => ''
+        };
     }
 }

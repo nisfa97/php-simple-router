@@ -1,14 +1,21 @@
 <?php
 
-declare(strict_types=1);
+declare (strict_types = 1);
 
 namespace Nisfa97\PhpSimpleRouter\Routing;
+
+use Nisfa97\PhpSimpleRouter\Exceptions\MiddlewareException;
 
 class RouteMiddleware
 {
     private array $middlewares = ['*' => []];
 
-    public function setMiddlewares(string|array $controllers): void
+    public function getMiddlewares(): array
+    {
+        return $this->middlewares;
+    }
+
+    public function setMiddlewares(string | array $controllers): void
     {
         if (is_string($controllers)) {
             $this->addMiddleware('*', $controllers);
@@ -28,51 +35,41 @@ class RouteMiddleware
         }
     }
 
-    public function getMiddlewares(): array
-    {
-        return $this->middlewares;
-    }
-
     private function addMiddleware(string $key, string $value): void
     {
-        if (! isset($this->middlewares[$key])) {
-            $this->middlewares[$key] = [];
-        }
+        $this->middlewares[$key] ??= [];
 
-        if (empty($this->middlewares[$key])) {
+        if (!in_array($value, $this->middlewares[$key], true)) {
             $this->middlewares[$key][] = $value;
-            return;
-        }
-
-        foreach ($this->middlewares[$key] as $middleware) {
-            if ($middleware !== $value) {
-                $this->middlewares[$key][] = $value;
-            }
         }
     }
 
-    private function normalizeMiddlewareKey(string|int $name): string
+    private function normalizeMiddlewareKey(string | int $name): string
     {
         return is_int($name) ? '*' : $name;
     }
 
     public function resolve(callable $next, array $routeMiddlewares): callable
     {
-        foreach (array_reverse($this->middlewares['*']) as $webMiddleware) {
-            if (! method_exists($webMiddleware, 'handle')) {
-                throw new \Exception("Middleware '$webMiddleware' does not have handle method.");
+        foreach (array_reverse($this->middlewares['*']) as $global) {
+            if (!method_exists($global, 'handle')) {
+                throw MiddlewareException::handleMethodNotFound($global);
             }
 
-            $next = (new $webMiddleware())->handle($next);
+            $next = (new $global())->handle($next);
         }
 
         if (!$routeMiddlewares) {
             return $next;
         }
 
-        foreach ($routeMiddlewares as $middlewareKey) {
-            if (isset($this->middlewares[$middlewareKey])) {
-                foreach (array_reverse($this->middlewares[$middlewareKey]) as $middleware) {
+        foreach ($routeMiddlewares as $alias) {
+            if (isset($this->middlewares[$alias])) {
+                foreach (array_reverse($this->middlewares[$alias]) as $middleware) {
+                    if (!method_exists($middleware, 'handle')) {
+                        throw MiddlewareException::handleMethodNotFound($global);
+                    }
+
                     $next = (new $middleware())->handle($next);
                 }
             }

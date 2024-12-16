@@ -36,7 +36,7 @@ $router->registerControllers([
 ]);
 
 // Register dependencies
-$router->registerContainer(function (Container $c) {
+$router->registerDependencies(function (Container $c) {
     $c->bind(Request::class, fn () => new Request());
     $c->bind(Response::class, fn () => new Response());
 });
@@ -63,7 +63,7 @@ $response = (new Router())
     ->registerControllers([
         DashboardController::class
     ])
-    ->registerContainer([
+    ->registerDependencies([
         Request::class,
         Response::class,
     ])

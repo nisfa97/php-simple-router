@@ -9,7 +9,6 @@ use Nisfa97\PhpSimpleRouter\Attributes\Routing\RoutePrefix;
 use Nisfa97\PhpSimpleRouter\Exceptions\RouteCollectionException;
 use ReflectionAttribute;
 use ReflectionClass;
-use ReflectionMethod;
 
 class RouteCollection
 {

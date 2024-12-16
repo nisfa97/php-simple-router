@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare (strict_types = 1);
 
 namespace Nisfa97\PhpSimpleRouter;
 
@@ -12,52 +12,33 @@ use Nisfa97\PhpSimpleRouter\Routing\RouteMiddleware;
 class Router
 {
     public function __construct(
-        private string              $requestMethod  = '',
-        private string              $requestUri     = '',
-        private ?RouteCollection    $collection     = null,
-        private ?RouteMiddleware    $middleware     = null,
-        private ?RouteMatcher       $routeMatcher   = null,
-        private ?Container          $container      = null
+        private string $requestMethod = '',
+        private string $requestUri = '',
+        private ?RouteCollection $collection = null,
+        private ?RouteMiddleware $middleware = null,
+        private ?RouteMatcher $routeMatcher = null,
+        private ?Container $container = null
     ) {
-        $this->requestMethod    = $_SERVER['REQUEST_METHOD'];
-        $this->requestUri       = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-        if (! $collection) {
-            $this->collection = new RouteCollection();
-        }
-
-        if (! $middleware) {
-            $this->middleware = new RouteMiddleware();
-        }
-
-        if (! $container) {
-            $this->container = new Container();
-        }
-
-        if (! $routeMatcher) {
-            $this->routeMatcher = new RouteMatcher(
-                $this->requestMethod,
-                $this->requestUri,
-                $this->collection,
-                $this->middleware,
-                $this->container,
-            );
-        }
+        $this->requestMethod = $requestMethod ?: $_SERVER['REQUEST_METHOD'];
+        $this->requestUri = $requestUri ?: parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $this->collection = $collection ?: new RouteCollection();
+        $this->middleware = $middleware ?: new RouteMiddleware();
+        $this->container = $container ?: new Container();
     }
 
-    public function registerControllers(string|array $controllers): Router
+    public function registerControllers(string | array $controllers): Router
     {
         $this->collection->setControllers($controllers);
         return $this;
     }
 
-    public function registerMiddlewares(string|array $middlewares): Router
+    public function registerMiddlewares(string | array $middlewares): Router
     {
         $this->middleware->setMiddlewares($middlewares);
         return $this;
     }
 
-    public function registerContainer(callable $callback)
+    public function registerDependencies(callable $callback)
     {
         $callback($this->container);
         return $this;
@@ -77,12 +58,17 @@ class Router
     {
         return [
             'routes' => $this->collection->getRoutes(),
-            'middlewares' => $this->middleware->getMiddlewares()
+            'middlewares' => $this->middleware->getMiddlewares(),
         ];
     }
 
     public function match(): string
     {
-        return $this->routeMatcher->match();
+        return (new RouteMatcher(
+            $this->requestMethod,
+            $this->requestUri,
+            $this->collection,
+            $this->middleware,
+            $this->container))->match();
     }
 }
