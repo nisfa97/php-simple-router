@@ -21,9 +21,9 @@ class Router
     ) {
         $this->requestMethod = $requestMethod ?: $_SERVER['REQUEST_METHOD'];
         $this->requestUri = $requestUri ?: parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $this->collection = $collection ?: new RouteCollection();
-        $this->middleware = $middleware ?: new RouteMiddleware();
-        $this->container = $container ?: new Container();
+        $this->collection = $collection ?? new RouteCollection();
+        $this->middleware = $middleware ?? new RouteMiddleware();
+        $this->container = $container ?? new Container();
     }
 
     public function registerControllers(string | array $controllers): Router
